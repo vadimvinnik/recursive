@@ -121,51 +121,97 @@ noexcept
 template <
     typename Result,
     typename Func,
-    typename Uncons,
-    typename Sequence>
+    typename Unconser,
+    typename Unconsable>
 Result foldr(
     Func func,
-    Uncons unconser,
-    Sequence sequence,
-    Result const seed)
+    Unconser unconser,
+    Unconsable unconsable,
+    Result const& seed)
 {
-    auto const uncons = unconser(sequence);
+    auto const maybe_uncons = unconser(unconsable);
 
-    return !uncons.has_value()
+    return !maybe_uncons.has_value()
         ? seed
         : func(
-            *uncons.value().first,
+            *maybe_uncons.value().first,
             foldr(
                 func,
                 unconser,
-                uncons.value().second,
+                maybe_uncons.value().second,
                 seed));
 }
 
 template <
     typename Result,
     typename Func,
-    typename Uncons,
-    typename Sequence>
+    typename Unconser,
+    typename Unconsable>
 Result foldl(
     Func func,
-    Uncons unconser,
-    Sequence sequence,
-    Result const seed)
+    Unconser unconser,
+    Unconsable unconsable,
+    Result const& seed)
 {
-    auto const uncons = unconser(sequence);
+    auto const maybe_uncons = unconser(unconsable);
 
-    return !uncons.has_value()
+    return !maybe_uncons.has_value()
         ? seed
         : foldl(
             func,
             unconser,
-            uncons.value().second,
+            maybe_uncons.value().second,
             func(
-                *uncons.value().first,
+                *maybe_uncons.value().first,
                 seed));
 }
 
-// TODO: unfold
+template <
+    typename Result,
+    typename Unfolder,
+    typename Combiner,
+    typename Seed>
+Result unfoldr(
+    Unfolder unfolder,
+    Combiner combiner,
+    Result const& initial,
+    Seed const& seed)
+{
+    auto maybe_unfolded = unfolder(seed);
+
+    return !maybe_unfolded.has_value()
+        ? initial
+        : combiner(
+            maybe_unfolded.value().first,
+            unfoldr(
+                unfolder,
+                combiner,
+                initial,
+                maybe_unfolded.value().second));
+}
+
+template <
+    typename Result,
+    typename Unfolder,
+    typename Combiner,
+    typename Seed>
+Result unfoldl(
+    Unfolder unfolder,
+    Combiner combiner,
+    Result const& initial,
+    Seed const& seed)
+{
+    auto maybe_unfolded = unfolder(seed);
+
+    return !maybe_unfolded.has_value()
+        ? initial
+        : unfoldl(
+            unfolder,
+            combiner,
+            combiner(
+                maybe_unfolded.value().first,
+                initial),
+            maybe_unfolded.value().second);
+}
 
 } // namespace recursive
